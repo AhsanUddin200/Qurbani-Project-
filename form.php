@@ -32,30 +32,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 '$animal_number', '$address', '$phone_number', $amount, CURDATE())";
 
         if (mysqli_query($conn, $sql)) {
-            // Get the last inserted ID
-            $last_id = mysqli_insert_id($conn);
-            
-            // Store the receipt data in session for printing
-            session_start();
-            $_SESSION['print_receipt'] = [
-                'id' => $last_id,
-                'customer_name' => $customer_name,
-                'animal_type' => $animal_type,
-                'hissa_count' => $hissa_count,
-                'hissa_number' => $hissa_number,
-                'animal_number' => $animal_number,
-                'address' => $address,
-                'phone_number' => $phone_number,
-                'amount' => $amount,
-                'date' => date('d-m-Y'),
-                'time' => date('h:i A'),
-                'receipt_number' => 'QUR-'.date('Ymd').'-'.$last_id
-            ];
-            
-            echo "<script>
-                alert('Entry saved successfully!');
-                window.open('print_receipt.php', '_blank');
-            </script>";
+            echo "<script>alert('Entry saved successfully!');</script>";
         } else {
             echo "Error: " . mysqli_error($conn);
         }
@@ -225,6 +202,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <!-- Add this link -->
             <a href="old_receipts.php" style="color: #0089c7; font-size: 18px;">پرانی رسیدیں دیکھیں</a>
         </div>
+        <a href="index.php" class="back-btn" style="display: inline-block; margin-top: 20px; text-decoration: none;">واپس جائیں</a>
         
         <!-- Single hissaInfo div -->
         <div id="hissaInfo" style="text-align: center; margin-bottom: 20px; padding: 15px; background: #e8eaf6; border-radius: 6px; color: #1a237e; direction: rtl;">
@@ -250,7 +228,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             <div class="form-group">
                 <label>حصے کی تعداد</label>
-                <input type="number" name="hissa_count" id="hissa_count" min="1" max="7" required>
+                <input type="number" name="hissa_count" id="hissa_count" min="1" max="7" required onchange="calculateAmount()">
             </div>
 
             <div class="form-group">
@@ -275,7 +253,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             <div class="form-group">
                 <label>رقم</label>
-                <input type="number" name="amount" value="26000" required>
+                <input type="number" name="amount" id="amount" value="26000" readonly required>
             </div>
 
             <button type="submit">محفوظ کریں</button>

@@ -225,6 +225,7 @@
                 <a href="zabiha.php">ذبیحہ فارم</a>
                 <a href="maloomat.php">معلومات</a>
                 <a href="hisaab.php">حساب کتاب</a>
+                <a href="old_receipts.php">رسیدیں</a>
             </div>
         </div>
     </nav>

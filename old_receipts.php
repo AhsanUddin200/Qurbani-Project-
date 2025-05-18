@@ -76,8 +76,39 @@ $result = mysqli_query($conn, $sql);
             margin-bottom: 20px;
         }
         @media print {
-            .no-print { display: none; }
-            .receipt-content { display: block !important; }
+            .container { display: none; }
+            #singleReceipt { display: block !important; }
+            body { padding: 0; margin: 0; }
+        }
+        #singleReceipt {
+            display: none;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+            direction: rtl;
+            font-family: 'Jameel Noori Nastaleeq', Arial, sans-serif;
+        }
+        .receipt-box {
+            border: 2px solid #000;
+            padding: 20px;
+            margin: 20px;
+        }
+        .receipt-header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .receipt-details {
+            font-size: 18px;
+            line-height: 2;
+        }
+        .receipt-footer {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-between;
+            padding-top: 20px;
+            border-top: 1px solid #000;
         }
     </style>
 </head>
@@ -109,60 +140,85 @@ $result = mysqli_query($conn, $sql);
                     <td><?php echo $row['customer_name']; ?></td>
                     <td><?php echo $row['animal_number']; ?></td>
                     <td><?php echo $row['hissa_count']; ?></td>
-                    <td><?php echo $row['amount']; ?></td>
+                    <td><?php echo number_format($row['hissa_count'] * 26000); ?> روپے</td>
                     <td class="no-print">
-                        <button class="print-btn" onclick="printReceipt(<?php echo htmlspecialchars(json_encode($row)); ?>)">
-                            پرنٹ کریں
-                        </button>
+                        <form action="print_single.php" method="POST" target="_blank">
+                            <input type="hidden" name="receipt_id" value="<?php echo $row['id']; ?>">
+                            <button type="submit" class="print-btn">پرنٹ کریں</button>
+                        </form>
                     </td>
                 </tr>
                 <?php endwhile; ?>
             </tbody>
         </table>
-        
-        <!-- Hidden receipt template -->
-        <div id="receiptTemplate" style="display: none;">
-            <div class="receipt-content" style="padding: 20px;">
-                <h2 style="text-align: center;">الخدمت سہراب گوٹھ</h2>
-                <h3 style="text-align: center;">اجتماعی قربانی رسید</h3>
-                <div style="margin: 20px 0; direction: rtl;">
-                    <p>نام: <span id="receipt-name"></span></p>
-                    <p>گائے نمبر: <span id="receipt-animal"></span></p>
-                    <p>حصے: <span id="receipt-hissa"></span></p>
-                    <p>رقم: <span id="receipt-amount"></span></p>
-                    <p>فون: <span id="receipt-phone"></span></p>
-                    <p>تاریخ: <span id="receipt-date"></span></p>
+
+        <div id="printArea" style="display: none;">
+            <div style="padding: 20px; font-family: 'Jameel Noori Nastaleeq', Arial, sans-serif; direction: rtl;">
+                <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 20px;">
+                    <h1 style="margin: 0;">الخدمت سہراب گوٹھ</h1>
+                    <h2 style="margin: 10px 0;">اجتماعی قربانی 2025</h2>
+                    <div id="printReceiptNumber"></div>
                 </div>
-                <div style="margin-top: 50px; display: flex; justify-content: space-between;">
+                
+                <div style="font-size: 18px; line-height: 2;">
+                    <p>نام: <span id="printName"></span></p>
+                    <p>جانور کی قسم: <span id="printAnimalType"></span></p>
+                    <p>جانور کا نمبر: <span id="printAnimalNumber"></span></p>
+                    <p>حصے کی تعداد: <span id="printHissaCount"></span></p>
+                    <p>حصہ نمبر: <span id="printHissaNumber"></span></p>
+                    <p>پتہ: <span id="printAddress"></span></p>
+                    <p>فون نمبر: <span id="printPhone"></span></p>
+                    <p>رقم: <span id="printAmount"></span></p>
+                    <p>تاریخ: <span id="printDate"></span></p>
+                </div>
+                
+                <div style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #000; display: flex; justify-content: space-between;">
                     <div>دستخط (صارف): ________________</div>
                     <div>دستخط (الخدمت): ________________</div>
                 </div>
             </div>
         </div>
+
+        <style>
+            @media print {
+                body * { visibility: hidden; }
+                #printArea, #printArea * { visibility: visible; }
+                #printArea {
+                    display: block !important;
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                }
+            }
+        </style>
+
+        <script>
+            function printSingleReceipt(data) {
+                document.getElementById('printName').textContent = data.customer_name;
+                document.getElementById('printAnimalType').textContent = data.animal_type;
+                document.getElementById('printAnimalNumber').textContent = data.animal_number;
+                document.getElementById('printHissaCount').textContent = data.hissa_count;
+                document.getElementById('printHissaNumber').textContent = data.hissa_number;
+                document.getElementById('printAddress').textContent = data.address;
+                document.getElementById('printPhone').textContent = data.phone_number;
+                document.getElementById('printAmount').textContent = data.amount;
+                document.getElementById('printDate').textContent = new Date(data.entry_date).toLocaleDateString();
+                document.getElementById('printReceiptNumber').textContent = 'رسید نمبر: QUR-' + data.entry_date.replace(/-/g, '') + '-' + data.id;
+                
+                window.print();
+            }
+        </script>
+
+        <script>
+            function searchEntries(query) {
+                const rows = document.querySelectorAll('#entriesBody tr');
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(query.toLowerCase()) ? '' : 'none';
+                });
+            }
+        </script>
     </div>
-
-    <script>
-        function searchEntries(query) {
-            const rows = document.querySelectorAll('#entriesBody tr');
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(query.toLowerCase()) ? '' : 'none';
-            });
-        }
-
-        function printReceipt(data) {
-            document.getElementById('receipt-name').textContent = data.customer_name;
-            document.getElementById('receipt-animal').textContent = data.animal_number;
-            document.getElementById('receipt-hissa').textContent = data.hissa_count;
-            document.getElementById('receipt-amount').textContent = data.amount;
-            document.getElementById('receipt-phone').textContent = data.phone_number;
-            document.getElementById('receipt-date').textContent = new Date(data.entry_date).toLocaleDateString();
-            
-            const receiptTemplate = document.getElementById('receiptTemplate');
-            receiptTemplate.style.display = 'block';
-            window.print();
-            receiptTemplate.style.display = 'none';
-        }
-    </script>
 </body>
 </html>
