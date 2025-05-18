@@ -32,7 +32,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 '$animal_number', '$address', '$phone_number', $amount, CURDATE())";
 
         if (mysqli_query($conn, $sql)) {
-            echo "<script>alert('Entry saved successfully!');</script>";
+            // Get the last inserted ID
+            $last_id = mysqli_insert_id($conn);
+            
+            // Store the receipt data in session for printing
+            session_start();
+            $_SESSION['print_receipt'] = [
+                'id' => $last_id,
+                'customer_name' => $customer_name,
+                'animal_type' => $animal_type,
+                'hissa_count' => $hissa_count,
+                'hissa_number' => $hissa_number,
+                'animal_number' => $animal_number,
+                'address' => $address,
+                'phone_number' => $phone_number,
+                'amount' => $amount,
+                'date' => date('d-m-Y'),
+                'time' => date('h:i A'),
+                'receipt_number' => 'QUR-'.date('Ymd').'-'.$last_id
+            ];
+            
+            echo "<script>
+                alert('Entry saved successfully!');
+                window.open('print_receipt.php', '_blank');
+            </script>";
         } else {
             echo "Error: " . mysqli_error($conn);
         }
@@ -131,6 +154,67 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             margin-top: 15px;
             line-height: 1.6;
         }
+        .print-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+        .print-btn:hover {
+            background-color: #218838;
+        }
+        
+        /* Add these print-specific styles */
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+                font-family: 'Jameel Noori Nastaleeq', Arial, sans-serif;
+            }
+            .container {
+                box-shadow: none;
+                padding: 20px;
+                max-width: none;
+            }
+            .print-btn, button[type="submit"], #hissaInfo {
+                display: none;
+            }
+            .form-group {
+                margin-bottom: 15px;
+            }
+            .form-group label {
+                display: inline-block;
+                width: 150px;
+                color: #000;
+            }
+            input, select, textarea {
+                border: none;
+                padding: 5px;
+                font-size: 16px;
+            }
+            .receipt-header {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .receipt-footer {
+                display: block !important;
+                margin-top: 50px;
+                text-align: right;
+                font-size: 16px;
+            }
+            .receipt-title {
+                font-size: 24px;
+                text-align: center;
+                margin: 20px 0;
+                border-bottom: 2px solid #000;
+                padding-bottom: 10px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -138,6 +222,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="header">
             <h1>الخدمت سہراب گوٹھ</h1>
             <h2>اجتماعی قربانی 2025</h2>
+            <!-- Add this link -->
+            <a href="old_receipts.php" style="color: #0089c7; font-size: 18px;">پرانی رسیدیں دیکھیں</a>
         </div>
         
         <!-- Single hissaInfo div -->
@@ -194,6 +280,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             <button type="submit">محفوظ کریں</button>
         </form>
+        
+        <!-- Add print button after form -->
+        <button onclick="printForm()" class="print-btn">پرنٹ کریں</button>
+        
+        <!-- Update receipt footer -->
+        <div class="receipt-footer" style="display: none;">
+            <div class="receipt-title">رسید اجتماعی قربانی</div>
+            <div style="margin: 20px 0;">
+                <p>تاریخ: <?php echo date('d-m-Y'); ?></p>
+                <p>وقت: <?php echo date('h:i A'); ?></p>
+                <p>سیریل نمبر: QUR-<?php echo date('Ymd').'-'.rand(1000,9999); ?></p>
+            </div>
+            <div style="margin-top: 40px;">
+                <div style="float: left;">
+                    <p>دستخط (صارف): ________________</p>
+                </div>
+                <div style="float: right;">
+                    <p>دستخط (الخدمت): ________________</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -255,7 +362,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         });
 
-        // Form submission handler - fixed version
+        // Form submission handler
         document.getElementById('qurbaniForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
@@ -280,6 +387,39 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 alert('کچھ غلط ہو گیا۔ دوبارہ کوشش کریں');
             }
         });
+
+        // Add print form function
+        function printForm() {
+            const formData = {
+                name: document.querySelector('[name="customer_name"]').value,
+                animalType: document.querySelector('[name="animal_type"]').value,
+                hissaCount: document.querySelector('[name="hissa_count"]').value,
+                hissaNumber: document.querySelector('[name="hissa_number"]').value,
+                animalNumber: document.querySelector('[name="animal_number"]').value,
+                address: document.querySelector('[name="address"]').value,
+                phone: document.querySelector('[name="phone_number"]').value,
+                amount: document.querySelector('[name="amount"]').value
+            };
+
+            if (formData.name && formData.animalNumber) {
+                document.querySelector('.receipt-footer').style.display = 'block';
+                
+                // Hide form elements that shouldn't be printed
+                const form = document.getElementById('qurbaniForm');
+                const originalDisplay = form.style.display;
+                form.style.display = 'none';
+                
+                window.print();
+                
+                // Restore form display
+                setTimeout(() => {
+                    form.style.display = originalDisplay;
+                    document.querySelector('.receipt-footer').style.display = 'none';
+                }, 1000);
+            } else {
+                alert('براہ کرم پہلے فارم مکمل کریں');
+            }
+        }
     </script>
 </body>
 </html>
