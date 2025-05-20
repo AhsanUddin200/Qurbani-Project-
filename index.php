@@ -305,12 +305,12 @@
                                 }
                                 <h3>${record.customer_name}</h3>
                                 <div class="result-details">
-                                    <div class="detail-item">جانور کا نمبر: ${record.animal_number}</div>
-                                    <div class="detail-item">جانور کی قسم: ${record.animal_type}</div>
+                                    <div class="detail-item">گائے نمبر: ${record.animal_number}</div>
+                                    <div class="detail-item">نام: ${record.customer_name}</div>
                                     <div class="detail-item">حصے: ${record.hissa_count}</div>
                                     <div class="detail-item">حصہ نمبر: ${record.hissa_number}</div>
                                     <div class="detail-item">فون: ${record.phone_number}</div>
-                                    <div class="detail-item">رقم: ${record.amount}</div>
+                                    <div class="detail-item">رقم: ${record.hissa_count * 26000} روپے</div>
                                     <div class="detail-item" style="grid-column: 1 / -1;">پتہ: ${record.address}</div>
                                 </div>
                                 <button onclick="updateHissaStatus(${record.id}, ${hissaStatus})" class="take-hissa-btn">
