@@ -223,6 +223,7 @@
             <div class="nav-links">
                 <a href="form.php">قربانی فارم</a>
                 <a href="zabiha.php">ذبیحہ فارم</a>
+                <a href="qurbani_names.php">قربانی کے نام</a>    <!-- Add this new link -->
                 <a href="maloomat.php">معلومات</a>
                 <a href="hisaab.php">حساب کتاب</a>
                 <a href="old_receipts.php">رسیدیں</a>
