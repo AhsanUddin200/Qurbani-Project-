@@ -11,9 +11,10 @@ $sql_animals = "SELECT
                 animal_number,
                 SUM(hissa_count) as total_hissa,
                 SUM(hissa_count * amount) as total_amount,
-                GROUP_CONCAT(DISTINCT hissa_number) as hissa_numbers
+                (7 - SUM(hissa_count)) as free_hissa
                 FROM qurbani_entries 
                 GROUP BY animal_number 
+                HAVING free_hissa > 0
                 ORDER BY animal_number";
 $result_animals = mysqli_query($conn, $sql_animals);
 
@@ -647,67 +648,70 @@ $net_amount = $total_income - $total_expenses;
 // Add this in the <head> section after other styles
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-// Add this just before closing </div> of the container
+<!-- Add graphs section -->
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 40px;">
     <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <h2 style="color: #0089c7; text-align: center;">روزانہ آمدنی کا گراف</h2>
+        <h2 style="color: #0089c7; text-align: center;">مالی رپورٹ</h2>
         <canvas id="financialChart"></canvas>
     </div>
     
     <div style="background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-        <h2 style="color: #0089c7; text-align: center;">روزانہ جانوروں کا گراف</h2>
+        <h2 style="color: #0089c7; text-align: center;">جانوروں کی تفصیلات</h2>
         <canvas id="animalsChart"></canvas>
     </div>
 </div>
 
 <script>
-<?php
 // Get financial data
-$sql_daily_income = "SELECT DATE(entry_date) as date, 
-                     SUM(hissa_count * amount) as daily_income 
-                     FROM qurbani_entries 
-                     GROUP BY DATE(entry_date) 
-                     ORDER BY date";
-$result_daily_income = mysqli_query($conn, $sql_daily_income);
+<?php
+$sql_financial = "SELECT 
+    'آمدنی' as type, SUM(hissa_count * amount) as total
+    FROM qurbani_entries
+UNION ALL
+    SELECT 'اخراجات' as type, SUM(amount) as total
+    FROM expenses";
 
-$dates = [];
-$incomes = [];
-while($row = mysqli_fetch_assoc($result_daily_income)) {
-    $dates[] = date('d-m-Y', strtotime($row['date']));
-    $incomes[] = intval($row['daily_income']);
+$result_financial = mysqli_query($conn, $sql_financial);
+$financial_data = [];
+$financial_labels = [];
+
+while($row = mysqli_fetch_assoc($result_financial)) {
+    $financial_labels[] = $row['type'];
+    $financial_data[] = intval($row['total']);
 }
 
 // Get animals data
-$sql_daily_animals = "SELECT DATE(entry_date) as date, 
-                     COUNT(DISTINCT animal_number) as total_animals,
-                     SUM(hissa_count) as total_hissa
-                     FROM qurbani_entries 
-                     GROUP BY DATE(entry_date) 
-                     ORDER BY date";
-$result_daily_animals = mysqli_query($conn, $sql_daily_animals);
+$sql_animals = "SELECT animal_number, SUM(hissa_count) as total_hissa 
+                FROM qurbani_entries 
+                GROUP BY animal_number 
+                ORDER BY animal_number";
+$result_animals = mysqli_query($conn, $sql_animals);
 
-$animal_dates = [];
-$total_animals = [];
-$total_hissa = [];
-while($row = mysqli_fetch_assoc($result_daily_animals)) {
-    $animal_dates[] = date('d-m-Y', strtotime($row['date']));
-    $total_animals[] = intval($row['total_animals']);
-    $total_hissa[] = intval($row['total_hissa']);
+$animal_labels = [];
+$animal_data = [];
+
+while($row = mysqli_fetch_assoc($result_animals)) {
+    $animal_labels[] = 'جانور نمبر ' . $row['animal_number'];
+    $animal_data[] = intval($row['total_hissa']);
 }
 ?>
 
 // Financial Chart
-const financialChart = new Chart(document.getElementById('financialChart'), {
-    type: 'line',
+new Chart(document.getElementById('financialChart'), {
+    type: 'doughnut',
     data: {
-        labels: <?php echo json_encode($dates); ?>,
+        labels: <?php echo json_encode($financial_labels); ?>,
         datasets: [{
-            label: 'روزانہ آمدنی',
-            data: <?php echo json_encode($incomes); ?>,
-            borderColor: '#0089c7',
-            backgroundColor: 'rgba(0,137,199,0.1)',
-            fill: true,
-            tension: 0.4
+            data: <?php echo json_encode($financial_data); ?>,
+            backgroundColor: [
+                'rgba(40, 167, 69, 0.8)',
+                'rgba(220, 53, 69, 0.8)'
+            ],
+            borderColor: [
+                'rgba(40, 167, 69, 1)',
+                'rgba(220, 53, 69, 1)'
+            ],
+            borderWidth: 1
         }]
     },
     options: {
@@ -717,17 +721,22 @@ const financialChart = new Chart(document.getElementById('financialChart'), {
                 position: 'top',
                 labels: {
                     font: {
-                        family: 'Jameel Noori Nastaleeq'
-                    }
+                        family: 'Jameel Noori Nastaleeq',
+                        size: 16
+                    },
+                    padding: 20
                 }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'رقم (روپے)'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        label += new Intl.NumberFormat('ur-PK').format(context.raw) + ' روپے';
+                        return label;
+                    }
                 }
             }
         }
@@ -735,18 +744,25 @@ const financialChart = new Chart(document.getElementById('financialChart'), {
 });
 
 // Animals Chart
-const animalsChart = new Chart(document.getElementById('animalsChart'), {
-    type: 'bar',
+new Chart(document.getElementById('animalsChart'), {
+    type: 'pie',
     data: {
-        labels: <?php echo json_encode($animal_dates); ?>,
+        labels: <?php echo json_encode($animal_labels); ?>,
         datasets: [{
-            label: 'جانوروں کی تعداد',
-            data: <?php echo json_encode($total_animals); ?>,
-            backgroundColor: '#28a745'
-        }, {
-            label: 'حصوں کی تعداد',
-            data: <?php echo json_encode($total_hissa); ?>,
-            backgroundColor: '#ffc107'
+            data: <?php echo json_encode($animal_data); ?>,
+            backgroundColor: [
+                'rgba(40, 167, 69, 0.8)',
+                'rgba(0, 123, 255, 0.8)',
+                'rgba(255, 193, 7, 0.8)',
+                'rgba(111, 66, 193, 0.8)',
+                'rgba(23, 162, 184, 0.8)',
+                'rgba(102, 16, 242, 0.8)',
+                'rgba(0, 182, 122, 0.8)',
+                'rgba(108, 117, 125, 0.8)',
+                'rgba(253, 126, 20, 0.8)',
+                'rgba(32, 201, 151, 0.8)'
+            ],
+            borderWidth: 1
         }]
     },
     options: {
@@ -756,17 +772,22 @@ const animalsChart = new Chart(document.getElementById('animalsChart'), {
                 position: 'top',
                 labels: {
                     font: {
-                        family: 'Jameel Noori Nastaleeq'
-                    }
+                        family: 'Jameel Noori Nastaleeq',
+                        size: 16
+                    },
+                    padding: 20
                 }
-            }
-        },
-        scales: {
-            y: {
-                beginAtZero: true,
-                title: {
-                    display: true,
-                    text: 'تعداد'
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        label += context.raw + ' حصے';
+                        return label;
+                    }
                 }
             }
         }
