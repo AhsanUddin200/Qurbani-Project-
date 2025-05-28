@@ -10,8 +10,6 @@ if(isset($_POST['receipt_id'])) {
     if(!$row) {
         die('Receipt not found');
     }
-} else {
-    die('No receipt ID provided');
 }
 ?>
 <!DOCTYPE html>
@@ -55,7 +53,10 @@ if(isset($_POST['receipt_id'])) {
         <div class="header">
             <h1>الخدمت سہراب گوٹھ</h1>
             <h2>اجتماعی قربانی 2025</h2>
-            <div>رسید نمبر: QUR-<?php echo date('Ymd', strtotime($row['entry_date'])) . '-' . $row['id']; ?></div>
+            <div>رسید نمبر: QUR-<?php 
+                $receipt_num = str_pad($row['receipt_number'], 3, '0', STR_PAD_LEFT);
+                echo $receipt_num . '-' . date('Ymd', strtotime($row['entry_date'])); 
+            ?></div>
             <div style="font-size: 14px; margin-top: 10px; color: #666;">
                 حصے کی معلومات کے لیے رابطہ کریں
             </div>
