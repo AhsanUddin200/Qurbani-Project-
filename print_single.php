@@ -16,7 +16,7 @@ if(isset($_POST['receipt_id'])) {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Print Receipt</title>
+    <title>Print Receip</title>
     <style>
         body {
             font-family: 'Jameel Noori Nastaleeq', Arial, sans-serif;
